@@ -1,0 +1,35 @@
+# Changes here will be overwritten by Copier; do NOT edit manually
+_commit: v0.14.5
+_src_path: gh:entelecheia/hyperfast-python-template
+author: hongseonggwan
+build_and_release: true
+code_template_answers_file: .copier-hyfi-config.yaml
+code_template_source: ''
+codecov_graph_token: '[REPLACE_ME]'
+copyright_year: 2024
+documentaion_tool: jupyter-book
+documentation_url: https://hxngo.github.io/AICS
+email: happyhsg1204@naver.com
+favicon_path: ''
+friendly_name: AICS
+github_repo_name: AICS
+github_username: hxngo
+google_analytics_id: ''
+logo_path: ''
+main_branch: main
+open_link: false
+package_name: aics
+package_scripts:
+- aics = 'aics.__cli__:main'
+poe_task_files:
+- .tasks.toml
+- .tasks-extra.toml
+project_description: ''
+project_license: MIT
+project_name: AICS
+project_short_description: ''
+upload_to_release: true
+upload_to_repository: true
+use_launch_buttons: false
+use_source_code_skeleton: true
+
