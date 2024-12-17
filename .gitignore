@@ -32,3 +32,6 @@ coverage.xml
 *.cover
 htmlcov/
 pytest-coverage.*
+
+# Environment variables
+.envrc
