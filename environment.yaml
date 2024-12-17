@@ -1,0 +1,16 @@
+name: rag_system
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - streamlit
+  - pydantic
+  - langchain
+  - openai
+  - chromadb
+  - pyyaml
+  - pip
+  - sentence-transformers
+  - huggingface-hub
+  - langchain

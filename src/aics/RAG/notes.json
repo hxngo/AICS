@@ -1,0 +1,181 @@
+[
+  {
+    "timestamp": "2024-11-27 12:01:01",
+    "content": "rag",
+    "tags": [
+      "복습필요"
+    ],
+    "video_info": {
+      "kind": "youtube#video",
+      "etag": "Zfrh3B03bYemhWTSBE3VfkdcFDQ",
+      "id": "Epy9LJiy1Po",
+      "snippet": {
+        "publishedAt": "2024-09-13T01:00:10Z",
+        "channelId": "UCM9urpxJaoPf-j1cV9pGszg",
+        "title": "RAG를 사용하여 생성형 AI 애플리케이션의 응답 품질 높이기",
+        "description": "본 강연에서는 생성형 AI 애플리케이션의 응답 품질을 높이기 위해 활용되는 Retrieval Augmented Generation(RAG)를 Amazon Bedrock에서 쉽게 만드는 방법을 알아보겠습니다. RAG를 구현하려면 데이터 소스에 연결하고, 데이터 수집 워크플로우를 관리하며, 커스텀 코드를 작성해야 하지만 Amazon Bedrock에서는 이 과정을 매우 쉽게 구현할 수 있습니다. 또한 파운데이션 모델 및 에이전트를 데이터 소스에 안정하게 연결하고, LangChain 생태계와의 통합을 어떻게 할 수 있는지에 대해서도 설명 드립니다.\n\n발표자 :\nYongzhe Ren, 솔루션즈 아키텍트, AWS\n강세용, 솔루션즈 아키텍트, AWS",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/Epy9LJiy1Po/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/Epy9LJiy1Po/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/Epy9LJiy1Po/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/Epy9LJiy1Po/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/Epy9LJiy1Po/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "Amazon Web Services Korea",
+        "tags": [
+          "AWS",
+          "클라우드"
+        ],
+        "categoryId": "28",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "ko",
+        "localized": {
+          "title": "RAG를 사용하여 생성형 AI 애플리케이션의 응답 품질 높이기",
+          "description": "본 강연에서는 생성형 AI 애플리케이션의 응답 품질을 높이기 위해 활용되는 Retrieval Augmented Generation(RAG)를 Amazon Bedrock에서 쉽게 만드는 방법을 알아보겠습니다. RAG를 구현하려면 데이터 소스에 연결하고, 데이터 수집 워크플로우를 관리하며, 커스텀 코드를 작성해야 하지만 Amazon Bedrock에서는 이 과정을 매우 쉽게 구현할 수 있습니다. 또한 파운데이션 모델 및 에이전트를 데이터 소스에 안정하게 연결하고, LangChain 생태계와의 통합을 어떻게 할 수 있는지에 대해서도 설명 드립니다.\n\n발표자 :\nYongzhe Ren, 솔루션즈 아키텍트, AWS\n강세용, 솔루션즈 아키텍트, AWS"
+        },
+        "defaultAudioLanguage": "ko"
+      },
+      "statistics": {
+        "viewCount": "487",
+        "likeCount": "21",
+        "favoriteCount": "0",
+        "commentCount": "1"
+      }
+    },
+    "created_at": "2024-11-27T12:01:01.618192"
+  },
+  {
+    "timestamp": "2024-12-01 20:48:22",
+    "content": "히진짬뽕",
+    "tags": [
+      "중요"
+    ],
+    "video_info": {
+      "kind": "youtube#video",
+      "etag": "zSdnB1Cnttb1j8v_OEHIRa0Sjkg",
+      "id": "1scMJH93v0M",
+      "snippet": {
+        "publishedAt": "2024-02-07T23:00:02Z",
+        "channelId": "UCt2wAAXgm87ACiQnDHQEW6Q",
+        "title": "#langchain 의 #RAG 파이프라인 이해해보기 - 네이버 뉴스기사 기반 Q&A 챗봇 제작",
+        "description": "📍 LangChain 한국어 튜토리얼\nhttps://github.com/teddylee777/langchain-master\n\n📍 실습파일\nhttps://github.com/teddylee777/langchain-kr/blob/main/12-RAG/01-RAG-Basic-Webloader.ipynb\n\n📍 블로그 글\n1. 기본편: https://teddylee777.github.io/langchain/rag-naver-news-qa/\n2. 심화편: https://teddylee777.github.io/langchain/rag-tutorial/\n\n📘 랭체인 튜토리얼 무료 전자책(wikidocs)\nhttps://wikidocs.net/book/14314\n\n✅ 랭체인 한국어 튜토리얼 코드저장소(GitHub)\nhttps://github.com/teddylee777/langchain-kr\n\n⭐️패스트캠퍼스 RAG 비법노트⭐️\n링크: https://fastcampus.co.kr/data_online_teddy\n- Naive RAG\n- Advanced RAG\n- Agent\n- LangGraph\n- 수강하신 분들께만 드리는 소스코드\n\n---\n테디노트(깃헙 블로그) : https://teddylee777.github.io\n머신러닝 혼자서 스터디 : https://github.com/teddylee777/machine-learning\nLLM 프로젝트: http://llm.teddynote.com",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/1scMJH93v0M/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/1scMJH93v0M/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/1scMJH93v0M/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/1scMJH93v0M/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/1scMJH93v0M/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "테디노트 TeddyNote",
+        "tags": [
+          "텐서플로우",
+          "딥러닝",
+          "tensorflow",
+          "텐서플로우 자격증",
+          "tensorflow certificate",
+          "텐서플로우 강좌",
+          "텐서플로우 2.0",
+          "텐서플로우 강의",
+          "딥러닝 강의",
+          "딥러닝 입문",
+          "비전공자 딥러닝",
+          "비전공자 머신러닝",
+          "머신러닝",
+          "데이터분석",
+          "비전공자 데이터 분석",
+          "패스트캠퍼스",
+          "런어데이",
+          "딥러닝 수학",
+          "deep learning",
+          "딥러닝 교육",
+          "머신러닝 입문",
+          "파이썬 데이터분석",
+          "파이썬 강의",
+          "파이썬 코딩",
+          "텐서플로우 튜토리얼",
+          "딥러닝 튜토리얼",
+          "구글 텐서플로우",
+          "딥러닝 자격증",
+          "머신러닝 자격증",
+          "텐서플로우 자격",
+          "딥러닝 소개",
+          "딥러닝 취업",
+          "데이터분석 취업",
+          "데이터분석 이직",
+          "패스트캠퍼스 딥러닝",
+          "패스트캠퍼스 데이터분석",
+          "python 강의",
+          "python 강좌",
+          "파이썬 강좌",
+          "딥러닝 강좌",
+          "머신러닝 강좌",
+          "머신러닝 수학",
+          "캐글",
+          "kaggle",
+          "자연어처리",
+          "시계열분석",
+          "테디노트",
+          "인공지능강의",
+          "데이터 취업",
+          "오늘코드",
+          "생활코딩"
+        ],
+        "categoryId": "27",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "ko",
+        "localized": {
+          "title": "#langchain 의 #RAG 파이프라인 이해해보기 - 네이버 뉴스기사 기반 Q&A 챗봇 제작",
+          "description": "📍 LangChain 한국어 튜토리얼\nhttps://github.com/teddylee777/langchain-master\n\n📍 실습파일\nhttps://github.com/teddylee777/langchain-kr/blob/main/12-RAG/01-RAG-Basic-Webloader.ipynb\n\n📍 블로그 글\n1. 기본편: https://teddylee777.github.io/langchain/rag-naver-news-qa/\n2. 심화편: https://teddylee777.github.io/langchain/rag-tutorial/\n\n📘 랭체인 튜토리얼 무료 전자책(wikidocs)\nhttps://wikidocs.net/book/14314\n\n✅ 랭체인 한국어 튜토리얼 코드저장소(GitHub)\nhttps://github.com/teddylee777/langchain-kr\n\n⭐️패스트캠퍼스 RAG 비법노트⭐️\n링크: https://fastcampus.co.kr/data_online_teddy\n- Naive RAG\n- Advanced RAG\n- Agent\n- LangGraph\n- 수강하신 분들께만 드리는 소스코드\n\n---\n테디노트(깃헙 블로그) : https://teddylee777.github.io\n머신러닝 혼자서 스터디 : https://github.com/teddylee777/machine-learning\nLLM 프로젝트: http://llm.teddynote.com"
+        },
+        "defaultAudioLanguage": "ko"
+      },
+      "statistics": {
+        "viewCount": "28853",
+        "likeCount": "1055",
+        "favoriteCount": "0",
+        "commentCount": "127"
+      }
+    },
+    "created_at": "2024-12-01T20:48:22.432223"
+  }
+]
