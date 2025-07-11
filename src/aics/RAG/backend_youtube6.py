@@ -23,14 +23,232 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.oauth2 import service_account
 
+class Translator:
+    def __init__(self):
+        # 1. 먼저 기본 설정값들을 초기화
+        self.base_url = "https://translation.googleapis.com/language/translate/v2"
+        self.supported_languages = {
+            'ko': '한국어',
+            'en': '영어',
+            'ja': '일본어',
+            'zh': '중국어',
+            'es': '스페인어',
+            'fr': '프랑스어',
+            'de': '독일어'
+        }
+
+        # 2. 그 다음 API 키 설정 및 검증
+        self.api_key = os.getenv('GOOGLE_API_KEY')
+        if not self.api_key:
+            raise ValueError("Google API key not found in environment variables")
+            
+        # 3. API 키 유효성 검사
+        self.api_verified = False
+
+    def verify_api_key(self):
+        """API 키의 유효성을 검사합니다."""
+        try:
+            test_params = {
+                'q': 'test',
+                'target': 'en',
+                'key': self.api_key
+            }
+            response = requests.post(self.base_url, params=test_params)
+            if response.status_code != 200:
+                raise ValueError(f"Invalid API key: {response.text}")
+        except Exception as e:
+            raise ValueError(f"API key verification failed: {str(e)}")
+
+    def translate_text(self, text: str, target_language: str) -> Optional[str]:
+        """텍스트를 지정된 언어로 번역합니다."""
+        try:
+            if not self.api_verified:
+                # 첫 번역 시도 시 API 상태 확인
+                test_response = requests.post(
+                    self.base_url,
+                    params={'q': 'test', 'target': 'en', 'key': self.api_key}
+                )
+                if test_response.status_code == 403:
+                    error_data = test_response.json()
+                    if 'error' in error_data and 'message' in error_data['error']:
+                        if 'SERVICE_DISABLED' in str(error_data):
+                            raise ValueError("Google Cloud Translation API가 비활성화되어 있습니다. API를 활성화하고 잠시 후 다시 시도해주세요.")
+                self.api_verified = True
+
+            params = {
+                'q': text,
+                'target': target_language,
+                'key': self.api_key,
+                'format': 'text'
+            }
+            
+            response = requests.post(self.base_url, params=params)
+            response.raise_for_status()
+            result = response.json()
+            return result['data']['translations'][0]['translatedText']
+            
+        except ValueError as ve:
+            # API 비활성화 등의 알려진 오류
+            logging.error(str(ve))
+            return None
+        except Exception as e:
+            # 기타 오류
+            logging.error(f"Translation failed: {e}")
+            return None
+
+    def translate_segments(self, segments: List[Dict], target_language: str) -> List[Dict]:
+        """자막 세그먼트들을 한 번에 번역합니다."""
+        try:
+            # 모든 텍스트를 하나의 요청으로 처리
+            all_texts = [segment['text'] for segment in segments]
+            params = {
+                'q': all_texts,  # 리스트로 전달하면 Google Translate API가 batch로 처리
+                'target': target_language,
+                'key': self.api_key,
+                'format': 'text'
+            }
+        
+            response = requests.post(self.base_url, params=params)
+            response.raise_for_status()
+            result = response.json()
+        
+            translations = result['data']['translations']
+        
+            # 번역 결과를 세그먼트와 매핑
+            translated_segments = []
+            for segment, translation in zip(segments, translations):
+                translated_segments.append({
+                    'start': segment['start'],
+                    'end': segment['end'],
+                    'text': translation['translatedText'],
+                    'original_text': segment['text']
+                })
+            
+            return translated_segments
+            
+        except Exception as e:
+            logging.error(f"Batch translation failed: {e}")
+            return segments  # 실패 시 원본 반환
+
+    def get_supported_languages(self) -> Dict[str, str]:
+        """지원되는 언어 목록을 반환합니다."""
+        return self.supported_languages
+
+class TranscriptManager:
+    def __init__(self):
+        self.transcripts = []
+        self.translator = None
+        self.load_transcripts()
+
+    def add_transcript(self, video_id: str, segments: List[Dict[str, Any]]) -> None:
+        """타임스탬프가 포함된 자막을 저장합니다."""
+        transcript_data = {
+            'video_id': video_id,
+            'segments': segments,
+            'created_at': datetime.now().isoformat()
+        }
+        self.transcripts.append(transcript_data)
+        self.save_transcripts()
+
+    def get_transcript(self, video_id: str) -> Optional[List[Dict[str, Any]]]:
+        """특정 비디오의 자막을 가져옵니다."""
+        try:
+            for transcript in self.transcripts:
+                if transcript.get('video_id') == video_id:
+                    return transcript.get('segments', [])
+            return None
+        except Exception as e:
+            print(f"자막 가져오기 실패: {str(e)}")
+            return None
+
+    def search_in_transcript(self, video_id: str, query: str) -> List[Dict[str, Any]]:
+        """자막에서 특정 키워드가 포함된 구간을 검색합니다."""
+        transcript = self.get_transcript(video_id)
+        if not transcript:
+            return []
+
+        results = []
+        for segment in transcript:
+            if query.lower() in segment['text'].lower():
+                results.append({
+                    'start_time': segment['start'],
+                    'end_time': segment['end'],
+                    'text': segment['text']
+                })
+        return results
+
+    def save_transcripts(self) -> None:
+        """자막 데이터를 파일에 저장합니다."""
+        try:
+            with open('transcripts.json', 'w', encoding='utf-8') as f:
+                json.dump(self.transcripts, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"자막 저장 실패: {str(e)}")
+
+    def load_transcripts(self) -> None:
+        """저장된 자막 데이터를 불러옵니다."""
+        try:
+            if os.path.exists('transcripts.json'):
+                with open('transcripts.json', 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if content:
+                        self.transcripts = json.loads(content)
+                    else:
+                        self.transcripts = []
+                        self.save_transcripts()
+            else:
+                self.transcripts = []
+                self.save_transcripts()
+        except json.JSONDecodeError as e:
+            logging.error(f"자막 파일 형식 오류: {e}")
+            self.transcripts = []
+            self.save_transcripts()
+        except Exception as e:
+            logging.error(f"자막 불러오기 실패: {e}")
+            self.transcripts = []
+
+    def show_translated_transcript(self, video_id: str, target_language: str) -> Optional[List[Dict]]:
+        """특정 비디오의 번역된 자막을 반환합니다."""
+        try:
+            transcript = self.get_transcript(video_id)
+            if not transcript:
+                logging.warning(f"No transcript found for video {video_id}")
+                return None
+            
+            try:
+                # Translator 인스턴스가 없는 경우 여기서 생성
+                if self.translator is None:
+                    from __main__ import Translator  # 현재 모듈에서 Translator 클래스 임포트
+                    self.translator = Translator()
+            except Exception as e:
+                logging.error(f"Failed to create Translator instance: {e}")
+                return None
+            
+            return self.translator.translate_segments(transcript, target_language)
+            
+        except Exception as e:
+            logging.error(f"Translation failed: {str(e)}")
+            return None
+
+def initialize_files():
+    """필요한 JSON 파일들을 초기화합니다."""
+    files = ['user_history.json', 'transcripts.json', 'notes.json', 'bookmarks.json']
+    for file in files:
+        try:
+            if not os.path.exists(file):
+                with open(file, 'w', encoding='utf-8') as f:
+                    json.dump([], f, ensure_ascii=False)
+        except Exception as e:
+            logging.error(f"Failed to initialize {file}: {str(e)}")
+
 # 로깅 설정
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # 경고 필터 설정 (확장)
+warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
-warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False`")
-warnings.filterwarnings("ignore", message="Examining the path of torch.classes raised")
 warnings.filterwarnings("ignore", message="torch.classes raised")
+warnings.filterwarnings("ignore", message="Examining the path of torch.classes")
 warnings.filterwarnings("ignore", message="file_cache is only supported")
 warnings.filterwarnings("ignore", message=".*torch\.classes.*")
 
@@ -298,19 +516,22 @@ class ContentAnalyzer:
         try:
             if os.path.exists("user_history.json"):
                 with open("user_history.json", "r", encoding="utf-8") as f:
-                    self.user_history = json.load(f)
+                    content = f.read().strip()
+                    if content:
+                        self.user_history = json.loads(content)
+                    else:
+                        self.user_history = []
+                        self.save_history()
+            else:
+                self.user_history = []
+                self.save_history()
+        except json.JSONDecodeError as e:
+            logging.error(f"시청 기록 파일 형식 오류: {e}")
+            self.user_history = []
+            self.save_history()  # 파일 재생성
         except Exception as e:
             logging.error(f"시청 기록 불러오기 실패: {e}")
             self.user_history = []
-
-    def remove_from_history(self, video_id: str) -> None:
-        """시청 기록에서 특정 항목을 삭제합니다."""
-        try:
-            self.user_history = [item for item in self.user_history if item['video_id'] != video_id]
-            self.save_history()
-        except Exception as e:
-            logging.error(f"시청 기록 삭제 실패: {e}")
-
 
 # YouTubeExtractor 클래스
 class YouTubeExtractor:
@@ -342,6 +563,8 @@ class YouTubeExtractor:
 # VideoProcessor 클래스
 class VideoProcessor:
     def __init__(self):
+        initialize_files()
+
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.youtube_api_key = os.getenv("YOUTUBE_API_KEY")
     
@@ -350,6 +573,8 @@ class VideoProcessor:
         if not self.youtube_api_key:
             raise ValueError("YouTube API 키가 설정되지 않았습니다.")
 
+        os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+        
         self.model = whisper.load_model("base")
         self.embeddings = HuggingFaceEmbeddings(
             model_name="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
@@ -425,14 +650,25 @@ class VideoProcessor:
             print(f"시간 변환 중 오류 발생: {str(e)}")
             return 0.0
 
-
     def process_video(self, url: str) -> Dict[str, Any]:
         try:
             video_info = self.youtube_extractor.get_video_info_pytube(url)
-            transcription = self._extract_transcription(url)
-        
-            # 자막 정보 저장
             video_id = self.youtube_extractor.get_video_id(url)
+            
+            # video_id에서 유요하지 않은 문자 제거
+            collection_name = f"video_{video_id.split('?')[0]}"
+            
+            transcription = self.extract_transcription(url)
+
+            # Chroma 클라이언트 생성 및 기존 컬렉션 삭제
+            import chromadb
+            chroma_client = chromadb.PersistentClient(path="video_db")
+        
+            # 현재 비디오의 컬렉션 삭제
+            try:
+                chroma_client.delete_collection(name=f"video_{video_id}")
+            except:
+                pass
         
             # GPT 요약 및 추천 컨텐츠 초기화
             summary = None
@@ -496,116 +732,35 @@ class VideoProcessor:
                     recommendations = []
 
             documents = self._create_documents(transcription, video_info)
-            vectorstore = self._create_vectorstore(documents)
+            vectorstore = Chroma.from_documents(
+                documents=documents,
+                embedding=self.embeddings,
+                collection_name=collection_name,
+                client=chroma_client
+            )
 
             return {
                 "video_info": video_info,
                 "vectorstore": vectorstore,
                 "transcription": transcription,
                 "summary": summary,
-                "recommendations": recommendations
+                "recommendations": recommendations,
+                "video_id": video_id
             }
         except Exception as e:
             raise RuntimeError(f"비디오 처리 중 오류 발생: {e}")
 
-    def search_content(self, vectorstore: Chroma, query: str) -> Dict[str, Any]:
-        """벡터스토어에서 쿼리에 관련된 내용을 검색합니다."""
-        try:
-            self.last_query = query
-            
-            # GPT 모델 초기화
-            llm = ChatOpenAI(
-                model="gpt-3.5-turbo-16k",
-                temperature=0.3,
-                max_tokens=2000,
-                openai_api_key=self.openai_api_key
-            )
-            
-            # 프롬프트 템플릿
-            prompt_template = """
-            아래는 YouTube 영상의 내용입니다. 주어진 질문에 대해 영상의 내용을 기반으로 정확하고 상세한 답변을 제공해주세요.
-
-            규칙:
-            1. 영상 내용에 명시된 정보만 사용하세요
-            2. 확실하지 않은 내용은 "영상에서 언급되지 않았습니다"라고 답변하세요
-            3. 답변은 논리적 순서로 구성해주세요
-            4. 가능한 경우 구체적인 예시나 설명을 포함하세요
-
-            영상 내용:
-            {context}
-
-            질문: {question}
-
-            답변 형식:
-            1. 직접적인 답변
-            2. 추가 설명 및 맥락
-            3. 관련 예시 (있는 경우)
-
-            답변:
-            """
-            
-            PROMPT = PromptTemplate(
-                template=prompt_template,
-                input_variables=["context", "question"]
-            )
-            
-            # 검색 설정 단순화
-            retriever = vectorstore.as_retriever(
-                search_kwargs={"k": 5}  # 검색할 문서 수만 지정
-            )
-            
-            # QA 체인 생성
-            qa_chain = RetrievalQA.from_chain_type(
-                llm=llm,
-                chain_type="stuff",
-                retriever=retriever,
-                chain_type_kwargs={
-                    "prompt": PROMPT,
-                    "verbose": False
-                }
-            )
-
-            # 검색 실행
-            result = qa_chain.invoke({"query": query})
-            
-            # source_documents 접근
-            source_docs = retriever.get_relevant_documents(query)
-            
-            # 결과 후처리
-            processed_documents = []
-            seen_content = set()
-            
-            for doc in source_docs:
-                if doc.page_content not in seen_content:
-                    seen_content.add(doc.page_content)
-                    processed_documents.append({
-                        'content': doc.page_content,
-                        'metadata': {
-                            **doc.metadata,
-                            'char_length': len(doc.page_content)
-                        }
-                    })
-            
-            return {
-                'answer': result.get('result', result.get('answer', '')),
-                'source_documents': processed_documents,
-                'processed_at': datetime.now().isoformat()
-            }
-            
-        except Exception as e:
-            logging.error(f"검색 중 오류 발생: {str(e)}")
-            raise Exception(f"검색 실패: {str(e)}")
-
-    def _extract_transcription(self, url: str) -> Dict[str, Any]:
+    def extract_transcription(self, url: str) -> Dict[str, Any]:
+        """영상의 자막을 추출합니다."""
         try:
             yt = YouTube(url)
             segments = []
             transcript = None
-        
+    
             # 자막 확인 및 선택
             available_captions = yt.captions
             print("Available captions:", available_captions.keys())
-        
+    
             caption_langs = ['ko', 'en', 'a.ko', 'a.en']
             for lang in caption_langs:
                 if lang in available_captions:
@@ -616,14 +771,14 @@ class VideoProcessor:
                     except Exception as e:
                         print(f"자막 로드 실패 ({lang}): {str(e)}")
                         continue
-        
+    
             if transcript:
                 try:
                     caption_tracks = transcript.generate_srt_captions()
                     for segment in caption_tracks.split('\n\n'):
                         if not segment.strip():
                             continue
-                
+            
                         lines = segment.split('\n')
                         if len(lines) >= 3:
                             try:
@@ -631,8 +786,8 @@ class VideoProcessor:
                                 start_time = self._time_to_seconds(times[0])
                                 end_time = self._time_to_seconds(times[1])
                                 text = ' '.join(lines[2:]).strip()
-                            
-                                if text: # 빈 텍스트 제외
+                        
+                                if text:  # 빈 텍스트 제외
                                     segments.append({
                                         'start': start_time,
                                         'end': end_time,
@@ -651,10 +806,10 @@ class VideoProcessor:
                     audio = yt.streams.filter(only_audio=True).first()
                     if not audio:
                         raise Exception("오디오 스트림을 찾을 수 없습니다.")
-                    
+                
                     audio_file = audio.download(filename="temp_audio.mp3")
                     result = self.model.transcribe(audio_file)
-                
+            
                     if result and 'segments' in result:
                         segments = [
                             {
@@ -665,7 +820,7 @@ class VideoProcessor:
                             for segment in result['segments']
                             if segment['text'].strip()
                         ]
-                    
+                
                     if os.path.exists(audio_file):
                         os.remove(audio_file)
                 except Exception as e:
@@ -677,11 +832,94 @@ class VideoProcessor:
             return {
                 'text': ' '.join(segment['text'] for segment in segments),
                 'segments': segments
-                }
+            }
         except Exception as e:
-                logging.error(f"자막 추출 중 오류 발생: {e}")
-                return {"text": "", "segments": []}
+            logging.error(f"자막 추출 중 오류 발생: {e}")
+            return {"text": "", "segments": []}
 
+    def search_content(self, vectorstore: Chroma, query: str, use_rag: bool = True) -> Dict[str, Any]:
+        try:
+            self.last_query = query
+        
+            # GPT 모델 초기화
+            llm = ChatOpenAI(
+                model="gpt-3.5-turbo-16k",
+                temperature=0.3,
+                max_tokens=2000,
+                openai_api_key=self.openai_api_key
+            )
+        
+            if use_rag:  # RAG 모드 - 영상 내용 기반 답변
+                prompt_template = PromptTemplate(
+                    template="""
+                    아래는 YouTube 영상의 내용입니다. 주어진 질문에 대해 영상의 내용을 기반으로 정확하고 상세한 답변을 제공해주세요.
+
+                    규칙:
+                    1. 영상 내용에 명시된 정보만 사용하세요
+                    2. 확실하지 않은 내용은 "영상에서 언급되지 않았습니다"라고 답변하세요
+                    3. 답변은 논리적 순서로 구성해주세요
+                    4. 가능한 경우 구체적인 예시나 설명을 포함하세요
+
+                    영상 내용:
+                    {context}
+
+                    질문: {question}
+
+                    답변:
+                    """,
+                    input_variables=["context", "question"]
+                )
+            
+                retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+                qa_chain = RetrievalQA.from_chain_type(
+                    llm=llm,
+                    chain_type="stuff",
+                    retriever=retriever,
+                    chain_type_kwargs={"prompt": prompt_template}
+                )
+
+                result = qa_chain.invoke({"query": query})
+                source_docs = retriever.get_relevant_documents(query)
+            
+                processed_documents = []
+                seen_content = set()
+                for doc in source_docs:
+                    if doc.page_content not in seen_content:
+                        seen_content.add(doc.page_content)
+                        processed_documents.append({
+                            'content': doc.page_content,
+                            'metadata': {
+                                **doc.metadata,
+                                'char_length': len(doc.page_content)
+                            }
+                        })
+            
+                return {
+                    'answer': result['result'],
+                    'source_documents': processed_documents,
+                    'processed_at': datetime.now().isoformat(),
+                    'rag_used': True
+                }
+            
+            else:  # non-RAG 모드 - 일반적인 AI 답변
+                messages = [
+                    {"role": "system", "content": "당신은 도움을 주는 AI 어시스턴트입니다."},
+                    {"role": "user", "content": query}
+                ]
+            
+                response = llm.invoke(messages)
+            
+                return {
+                    'answer': response.content,
+                    'source_documents': [],
+                    'processed_at': datetime.now().isoformat(),
+                    'rag_used': False
+                }
+            
+        except Exception as e:
+            logging.error(f"검색 중 오류 발생: {str(e)}")
+            raise
+    
     def _create_documents(self, transcription: Dict[str, Any], video_info: Dict[str, Any]) -> List[Document]:
         metadata = {"title": video_info.get("title", ""), "author": video_info.get("author", "")}
         documents = [Document(page_content=transcription["text"], metadata=metadata)]
@@ -742,124 +980,49 @@ class VideoProcessor:
                 logging.error(f"결과 후처리 실패: {str(e)}")
                 return result
 
-def _post_process_search_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
-    """검색 결과를 후처리하여 품질을 개선합니다."""
-    try:
-        # 답변 품질 검증
-        if len(result['result'].strip()) < 10 and self.last_query:
-            # 답변이 너무 짧으면 재검색
-            return self.search_content(self.vectorstore, self.last_query)
+    def _post_process_search_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """검색 결과를 후처리하여 품질을 개선합니다."""
+        try:
+            # 답변 품질 검증
+            if len(result['result'].strip()) < 10 and self.last_query:
+                # 답변이 너무 짧으면 재검색
+                return self.search_content(self.vectorstore, self.last_query)
             
-        # 중복 제거 및 관련성 점수 처리
-        processed_documents = []
-        seen_content = set()
+            # 중복 제거 및 관련성 점수 처리
+            processed_documents = []
+            seen_content = set()
             
-        for doc in result['source_documents']:
-            if doc.page_content not in seen_content:
-                seen_content.add(doc.page_content)
-                processed_documents.append({
-                    'content': doc.page_content,
-                    'metadata': {
-                        **doc.metadata,
-                        'relevance_score': getattr(doc, 'relevance_score', None),
-                        'char_length': len(doc.page_content)
-                    }
-                })
+            for doc in result['source_documents']:
+                if doc.page_content not in seen_content:
+                    seen_content.add(doc.page_content)
+                    processed_documents.append({
+                        'content': doc.page_content,
+                        'metadata': {
+                            **doc.metadata,
+                            'relevance_score': getattr(doc, 'relevance_score', None),
+                            'char_length': len(doc.page_content)
+                        }
+                    })
             
-        return {
-            'answer': result['result'],
-            'source_documents': processed_documents,
-            'processed_at': datetime.now().isoformat()
-        }
+            return {
+                'answer': result['result'],
+                'source_documents': processed_documents,
+                'processed_at': datetime.now().isoformat()
+            }
             
-    except Exception as e:
-        logging.error(f"결과 후처리 실패: {str(e)}")
-        return {
-            'answer': result.get('result', ''),
-            'source_documents': [],
-            'error': str(e)
-        }
+        except Exception as e:
+            logging.error(f"결과 후처리 실패: {str(e)}")
+            return {
+                'answer': result.get('result', ''),
+                'source_documents': [],
+                'error': str(e)
+            }
 
 @st.cache_data(ttl=3600)
 def search_with_cache(self, query: str, video_id: str) -> Dict[str, Any]:
     """캐시를 활용한 검색 기능"""
     return self.search_content(self.vectorstore, query)
-
-class TranscriptManager:
-    def __init__(self):
-        self.transcripts = []
-        self.load_transcripts()
-
-    def add_transcript(self, video_id: str, segments: List[Dict[str, Any]]) -> None:
-        """타임스탬프가 포함된 자막을 저장합니다."""
-        transcript_data = {
-            'video_id': video_id,
-            'segments': segments,
-            'created_at': datetime.now().isoformat()
-        }
-        self.transcripts.append(transcript_data)
-        self.save_transcripts()
-
-    def get_transcript(self, video_id: str) -> Optional[List[Dict[str, Any]]]:
-        """특정 비디오의 자막을 가져옵니다."""
-        try:
-            for transcript in self.transcripts:
-                if transcript.get('video_id') == video_id:
-                    return transcript.get('segments', [])
-            return None
-        except Exception as e:
-            print(f"자막 가져오기 실패: {str(e)}")
-            return None
-
-
-    def search_in_transcript(self, video_id: str, query: str) -> List[Dict[str, Any]]:
-        """자막에서 특정 키워드가 포함된 구간을 검색합니다."""
-        transcript = self.get_transcript(video_id)
-        if not transcript:
-            return []
-
-        results = []
-        for segment in transcript:
-            if query.lower() in segment['text'].lower():
-                results.append({
-                    'start_time': segment['start'],
-                    'end_time': segment['end'],
-                    'text': segment['text']
-                })
-        return results
-
-    def save_transcripts(self) -> None:
-        """자막 데이터를 파일에 저장합니다."""
-        try:
-            with open('transcripts.json', 'w', encoding='utf-8') as f:
-                json.dump(self.transcripts, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"자막 저장 실패: {str(e)}")
-
-    def load_transcripts(self) -> None:
-        """저장된 자막 데이터를 불러옵니다."""
-        try:
-            if os.path.exists('transcripts.json'):
-                with open('transcripts.json', 'r', encoding='utf-8') as f:
-                    content = f.read().strip()  # 파일 내용 읽기
-                    if content:  # 내용이 있는 경우에만 파싱
-                        self.transcripts = json.loads(content)
-                    else:
-                        # 빈 파일인 경우 빈 리스트로 초기화
-                        self.transcripts = []
-                        # 빈 리스트로 파일 초기화
-                        with open('transcripts.json', 'w', encoding='utf-8') as f:
-                            json.dump([], f, ensure_ascii=False)
-            else:
-                # 파일이 없는 경우 새로 생성
-                self.transcripts = []
-                with open('transcripts.json', 'w', encoding='utf-8') as f:
-                    json.dump([], f, ensure_ascii=False)
-        except Exception as e:
-            logging.error(f"자막 불러오기 실패: {str(e)}")
-            self.transcripts = []
-
-
+        
 class NoteManager:
     def __init__(self):
         self.notes = []
